@@ -15,7 +15,7 @@ const firestore = getFirestore();
 
 let clients = [];
 
-router.get('/createCallID', (req, res) => {
+router.post('/register', (req, res) => {
     const callDoc = firestore.collection('calls').doc();
 
     try {
@@ -28,13 +28,12 @@ router.get('/createCallID', (req, res) => {
     }
 });
 
-router.post('/offerSdp', async (req, res) => {
-    const callId = req.body.id;
+router.get('/:id/offerSdp', async (req, res) => {
+    // console.log("req.params.id --->",req.params.id);
+    const callId = req.params.id;
     const callDoc = firestore.collection('calls').doc(callId);
     const callData = (await callDoc.get()).data();
     const offerDescription = callData.offer;
-    // console.log("offerDescription -----> ",callData);
-    // console.log("offerDescription -----> ",offerDescription);
 
     try {
         res.json({ 
@@ -46,161 +45,179 @@ router.post('/offerSdp', async (req, res) => {
     }
 });
 
-router.post('/offer', async (req, res) => {//id = phone-number-id
-    const callId = req.body.id;
-    const offerSdp = req.body.offer;
-    const clientype = req.body.clientype;//clientype: "callee"
+router.post('/calls', async (req, res) => {//id = phone-number-id
+    // {
+    //     call_id:"123",
+    //     action: "connect/accept",
+    //     connection: {
+    //         webrtc:{
+    //             sdp : '<<SDP INFO>>'
+    //         }
+    //     }
+    // }
 
-    const callDoc = firestore.collection('calls').doc(callId);
-    const offerCandidates = callDoc.collection('offerCandidates');
-    const answerCandidates = callDoc.collection('answerCandidates');
+    // console.log("body ====> ",req.body);
+    if (req.body.call_id === "" || req.body.call_id == undefined) {
+        res.status(400).json({error:"please register first"});
+    } else {
+        const callId = req.body.call_id;
+        const sdp = req.body.connection?.webrtc?.sdp;
+        const action = req.body.action; //action: "connect/accept"
 
-    console.log("callDoc.id =====>",callId);
-
-    await callDoc.set({ offer:offerSdp });
-
-    // Listen for remote answer
-    callDoc.onSnapshot((snapshot) => {
-        const data = snapshot.data();
-        console.log("data?.answer =====> ",data?.answer);
-        if (data?.answer) {
-            console.log("answerDescription setRemoteDescription");
-            const time = (new Date()).toLocaleTimeString();
-
-            const massage = {
-                type: "answerDescription",
-                data:data.answer,
-                time:time,
-                clientype:clientype
+        if (action === "connect") {
+        
+            const offer = {
+                sdp: sdp,
+                type: "offer",
             };
 
-            sendMessageToAll(massage);
-        }
-      });
+            const callDoc = firestore.collection('calls').doc(callId);
+            const offerCandidates = callDoc.collection('offerCandidates');
+            const answerCandidates = callDoc.collection('answerCandidates');
 
-    // When answered, add candidate to peer connection
-    answerCandidates.onSnapshot((snapshot) => {
-        snapshot.docChanges().forEach((change) => {
-        if (change.type === 'added') {
-            let data = change.doc.data();
-            console.log("answerCandidate's ICE data",data);
-            const time = (new Date()).toLocaleTimeString();
+            console.log("callDoc.id =====>",callId);
 
-            const massage = {
-              type: "answerIceCandidates",
-              data:data,
-              time:time,
-              clientype:clientype
+            await callDoc.set({ offer });
+
+            // Listen for remote answer
+            callDoc.onSnapshot((snapshot) => {
+                const data = snapshot.data();
+                console.log("data?.answer =====> ",data?.answer);
+                if (data?.answer) {
+                    console.log("answerDescription setRemoteDescription");
+                    const time = (new Date()).toLocaleTimeString();
+
+                    const massage = {
+                        type: "answerDescription",
+                        data:data.answer,
+                        time:time,
+                        clientype:action
+                    };
+
+                    sendMessageToAll(massage);
+                }
+            });
+
+            // When answered, add candidate to peer connection
+            answerCandidates.onSnapshot((snapshot) => {
+                snapshot.docChanges().forEach((change) => {
+                if (change.type === 'added') {
+                    let data = change.doc.data();
+                    console.log("answerCandidate's ICE data",data);
+                    const time = (new Date()).toLocaleTimeString();
+
+                    const massage = {
+                        type: "answerIceCandidates",
+                        data:data,
+                        time:time,
+                        clientype:action
+                    };
+
+                    sendMessageToAll(massage);
+                }
+                });
+            });
+
+            res.json(
+                { 
+                    success : true,
+                    callId:callId,
+                    action:action,
+                    offer:offer
+                }
+            );
+
+        } else {
+            const callDoc = firestore.collection('calls').doc(callId);
+            const offerCandidates = callDoc.collection('offerCandidates');
+            const answerCandidates = callDoc.collection('answerCandidates');
+
+            console.log("callDoc.id =====>",callId);
+            const answer = {
+                sdp: sdp,
+                type: "answer",
             };
 
-            sendMessageToAll(massage);
+            await callDoc.update({ answer });
+
+            // console.log(req.body);
+            offerCandidates.onSnapshot((snapshot) => {
+                snapshot.docChanges().forEach((change) => {
+                console.log(change);
+                if (change.type === 'added') {
+                    let data = change.doc.data();
+                    console.log("offerCandidate's ICE data",data);
+                    const time = (new Date()).toLocaleTimeString();
+
+                    const massage = {
+                    type: "offerIceCandidates",
+                    data:data,
+                    time:time,
+                    clientype:action
+                    };
+
+                    sendMessageToAll(massage);
+
+                }
+                });
+            });
+
+            res.json(
+                { 
+                    success : true,
+                    callId:callId,
+                    action:action,
+                    offer:answer
+                }
+            );
         }
-        });
-    });  
-    // console.log(req.body);
-    try {
+    }
+});
+
+router.post('/icecandidate', async (req, res) => {//id = phone-number-id
+    // console.log("offerICE =====>",req.body);
+    // {
+    //     call_id:"123",
+    //     ice_type:"offer/answer",
+    //     connection: {
+    //         webrtc:{
+    //             ice : '<<ICE INFO>>'
+    //         }
+    //     }
+    // }
+
+    if (req.body.call_id === "" || req.body.call_id == undefined) {
+        res.status(400).json({error:"please register first"});
+    }else{
+        const callId = req.body.call_id;
+        const ice = req.body.connection?.webrtc?.ice;
+        const ice_type = req.body.ice_type; //ice_type: "offer/answer"
+
+        if (ice_type === "offer") {
+            const callDoc = firestore.collection('calls').doc(callId);
+            const offerCandidates = callDoc.collection('offerCandidates');
+            // const answerCandidates = callDoc.collection('answerCandidates');
+        
+            // console.log("callDoc.id =====>",callDoc.id);
+        
+            offerCandidates.add(ice);
+        }else if (ice_type === "answer") {
+            const callDoc = firestore.collection('calls').doc(callId);
+            // const offerCandidates = callDoc.collection('offerCandidates');
+            const answerCandidates = callDoc.collection('answerCandidates');
+        
+            // console.log("callDoc.id =====>",callDoc.id);
+        
+            answerCandidates.add(ice);
+        }
+
         res.json(
             { 
-                success : true
+                success : true,
+                call_id:callId
             }
         );
-    } catch (error) {
-        res.status(400).json(error);
-    }
-});
-
-router.post('/answer', async (req, res) => {//id = phone-number-id
-    const callId = req.body.id;
-    const answerSdp = req.body.answer;
-    const clientype = req.body.clientype;//clientype: "callee"
-
-
-    const callDoc = firestore.collection('calls').doc(callId);
-    const offerCandidates = callDoc.collection('offerCandidates');
-    const answerCandidates = callDoc.collection('answerCandidates');
-
-    console.log("callDoc.id =====>",callId);
-
-    await callDoc.update({ answer:answerSdp });
-
-    // console.log(req.body);
-    offerCandidates.onSnapshot((snapshot) => {
-        snapshot.docChanges().forEach((change) => {
-          console.log(change);
-          if (change.type === 'added') {
-            let data = change.doc.data();
-            console.log("offerCandidate's ICE data",data);
-            const time = (new Date()).toLocaleTimeString();
-
-            const massage = {
-              type: "offerIceCandidates",
-              data:data,
-              time:time,
-              clientype:clientype
-            };
-
-            sendMessageToAll(massage);
-
-          }
-        });
-      });
-
-    try {
-        res.json(
-            { 
-                success : true
-            }
-        );
-    } catch (error) {
-        res.status(400).json(error);
-    }
-});
-
-router.post('/offerICE', async (req, res) => {//id = phone-number-id
-    // console.log("offerICE =====>",req.body);
-
-    const callId = req.body.id;
-    const offer_ice = req.body.offer_ice;
-
-    const callDoc = firestore.collection('calls').doc(callId);
-    const offerCandidates = callDoc.collection('offerCandidates');
-    const answerCandidates = callDoc.collection('answerCandidates');
-
-    // console.log("callDoc.id =====>",callDoc.id);
-
-    offerCandidates.add(offer_ice);
-
-    // console.log(req.body);
-    try {
-        res.json({ success : true,
-            id:callId
-         });
-    } catch (error) {
-        res.status(400).json(error);
-    }
-});
-
-router.post('/answerICE', async (req, res) => {//id = phone-number-id
-    // console.log("offerICE =====>",req.body);
-
-    const callId = req.body.id;
-    const answer_ice = req.body.answer_ice;
-
-    const callDoc = firestore.collection('calls').doc(callId);
-    const offerCandidates = callDoc.collection('offerCandidates');
-    const answerCandidates = callDoc.collection('answerCandidates');
-
-    // console.log("callDoc.id =====>",callDoc.id);
-
-    answerCandidates.add(answer_ice);
-
-    // console.log(req.body);
-    try {
-        res.json({ success : true,
-            id:callId
-         });
-    } catch (error) {
-        res.status(400).json(error);
+        
     }
 });
 
@@ -208,7 +225,7 @@ router.post('/answerICE', async (req, res) => {//id = phone-number-id
  * send message event
  */ 
 function sendMessageToAll(payload) {
-    console.log("payload ------> ",clients);
+    // console.log("payload ------> ",clients);
     clients.forEach(client => {
         sendMessage(client.response, payload);
     })
@@ -264,8 +281,6 @@ const handleSSE = (req, response) =>{
 //   }, 3000);
 
 }
-
-//use it
 
 router.get("/stream", handleSSE)
 

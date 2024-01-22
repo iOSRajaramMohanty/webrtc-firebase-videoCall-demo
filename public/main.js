@@ -26,6 +26,9 @@ const answerButton = document.getElementById('answerButton');
 const remoteVideo = document.getElementById('remoteVideo');
 const hangupButton = document.getElementById('hangupButton');
 
+const offerSDPTextView = document.getElementById('offerSDP');
+const answerSDPTextView = document.getElementById('answerSDP');
+
 callButton.disabled = true;
 answerButton.disabled = true;
 webcamButton.disabled = false;
@@ -122,7 +125,7 @@ webcamButton.onclick = async () => {
 // 2. Create an offer
 callButton.onclick = async () => {
   // Reference Firestore collections for signaling
-  clientype = "caller";
+  clientype = "connect";
   const callId = await getCallID();
   callInput.value = callId.id;
 
@@ -130,57 +133,86 @@ callButton.onclick = async () => {
   pc.onicecandidate = (event) => {
     // console.log("offerCandidates ======> ",event.candidate.toJSON())
     const offerIceCandidate = event.candidate && {
-      offer_ice: event.candidate.toJSON(),
-      id: callId.id,
-    };
-    event.candidate && setOfferIce(offerIceCandidate);
+      connection: {
+        webrtc:{
+            ice : event.candidate.toJSON()
+        }
+      },
+      ice_type:"offer",
+      call_id: callId.id,
+    }
+    event.candidate && setIce(offerIceCandidate);
   };
 
   // Create offer
   const offerDescription = await pc.createOffer();
   await pc.setLocalDescription(offerDescription);
 
-  const offer = {
-    sdp: offerDescription.sdp,
-    type: offerDescription.type,
-  };
+  offerSDPTextView.value = offerDescription.sdp;
+  const connectPayload = {
+      call_id:callId.id,
+      action: clientype,
+      connection: {
+          webrtc:{
+              sdp : offerDescription.sdp
+          }
+      }
+  }
 
-  const data = await setOffer({clientype: clientype,offer:offer, id:callId.id});
+  const data = await connectCall(connectPayload);
   console.log(data);
   // hangupButton.disabled = false;
 };
 
 // 3. Answer the call with the unique ID
 answerButton.onclick = async () => {
-  clientype = "callee";
+  clientype = "accept";
   const callId = callInput.value;
 
-  pc.onicecandidate = (event) => {
-    const answerIceCandidate = event.candidate && {
-      answer_ice: event.candidate.toJSON(),
-      id: callId,
-      clientype: clientype,
+  // if (callId != "" && offerSDPTextView.value != ""){
+
+    pc.onicecandidate = (event) => {
+      const answerIceCandidate = event.candidate &&  {
+        connection: {
+          webrtc:{
+              ice : event.candidate.toJSON()
+          }
+        },
+        ice_type:"answer",
+        call_id: callId,
+      };
+      event.candidate && setIce(answerIceCandidate);
     };
-    event.candidate && setAnswerIce(answerIceCandidate);
-  };
 
 
-  // const offerDescription = callData.offer;
-  const offerData = await getOfferSdp(callId);
-  // console.log("offerData ======> ",offerData);
-  await pc.setRemoteDescription(new RTCSessionDescription(offerData.offerDescription));
+    // const offerDescription = callData.offer;
+    const offerData = await getOfferSdp(callId);//offerSDPTextView.value;//await getOfferSdp(callId);
+    const offerDescription = {
+      sdp: offerData,
+      type: "offer",
+    };
+    console.log("offerData ======> ",offerData);
+    await pc.setRemoteDescription(new RTCSessionDescription(offerData.offerDescription));
 
-  const answerDescription = await pc.createAnswer();
-  await pc.setLocalDescription(answerDescription);
+    const answerDescription = await pc.createAnswer();
+    await pc.setLocalDescription(answerDescription);
 
-  const answer = {
-    type: answerDescription.type,
-    sdp: answerDescription.sdp,
-  };
+    answerSDPTextView.value = answerDescription.sdp;
+    const connectPayload = {
+      call_id:callId,
+      action: clientype,
+      connection: {
+          webrtc:{
+              sdp : answerDescription.sdp
+          }
+      }
+  }
 
-  const data = await setAnswer({clientype: clientype, answer:answer, id:callId});
-  console.log(data);
-
+    const data = await connectCall(connectPayload);
+    console.log(data);
+  // }else {
+  //   console.log("offer sdp and client id is missing");
+  // }
 };
 
 // 3. Hangup the call
@@ -202,6 +234,10 @@ hangupButton.onclick = async () => {
   source.removeEventListener("open", handleOpenEvent, false);
   source.removeEventListener("error", handleErrorEvent, false);
   source = null;
+
+  offerSDPTextView.value = "";
+  answerSDPTextView.value = "";
+
 
   callButton.disabled = true;
   answerButton.disabled = true;
@@ -235,8 +271,8 @@ const getRequestOption = () => {
   };
 }
 
-const setOffer = async (offer) => {
-	const response = await fetch(`${apiUrl}offer`, postRequestOption(offer));
+const connectCall = async (offer) => {
+	const response = await fetch(`${apiUrl}calls`, postRequestOption(offer));
   
   if (!response.ok) {
 		throw new Error(`HTTP error! status: ${response.status}`);
@@ -246,30 +282,8 @@ const setOffer = async (offer) => {
   return data;
 }
 
-const setAnswer = async (answer) => {
-	const response = await fetch(`${apiUrl}answer`, postRequestOption(answer));
-  
-  if (!response.ok) {
-		throw new Error(`HTTP error! status: ${response.status}`);
-	}
-
-  const data = await response.json();
-  return data;
-}
-
-const setOfferIce = async (offerIce) => {
-	const response = await fetch(`${apiUrl}offerICE`, postRequestOption(offerIce));
-  
-  if (!response.ok) {
-		throw new Error(`HTTP error! status: ${response.status}`);
-	}
-
-  const data = await response.json();
-  return data;
-}
-
-const setAnswerIce = async (answerIce) => {
-	const response = await fetch(`${apiUrl}answerICE`, postRequestOption(answerIce));
+const setIce = async (offerIce) => {
+	const response = await fetch(`${apiUrl}icecandidate`, postRequestOption(offerIce));
   
   if (!response.ok) {
 		throw new Error(`HTTP error! status: ${response.status}`);
@@ -280,7 +294,12 @@ const setAnswerIce = async (answerIce) => {
 }
 
 const getCallID = async () => {
-	const response = await fetch(`${apiUrl}createCallID`, getRequestOption());
+	const response = await fetch(`${apiUrl}register`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
   
   if (!response.ok) {
 		throw new Error(`HTTP error! status: ${response.status}`);
@@ -291,13 +310,7 @@ const getCallID = async () => {
 }
 
 const getOfferSdp = async (callId) => {
-	const response = await fetch(`${apiUrl}offerSdp`, {
-    method: 'POST',
-    body: JSON.stringify({id:callId}),
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  });
+	const response = await fetch(`${apiUrl}${callId}/offerSdp`, getRequestOption);
   
   if (!response.ok) {
 		throw new Error(`HTTP error! status: ${response.status}`);
