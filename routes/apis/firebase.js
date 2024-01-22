@@ -3,15 +3,18 @@ const router = express.Router();
 const path = require('path');
 const { initializeApp, applicationDefault, cert } = require('firebase-admin/app');
 const { getFirestore, Timestamp, FieldValue, Filter } = require('firebase-admin/firestore');
+// var SSE = require('express-sse');
+// var sse = new SSE();
+// const cors = require('cors');
 
-const firebaseConfig = {
-  apiKey: "AIzaSyDyxhO5BWrMgOGXnWJfCbTDcpUnGHCvfaQ",
-  authDomain: "voicecallwebrtc-fb021.firebaseapp.com",
-  projectId: "voicecallwebrtc-fb021",
-  storageBucket: "voicecallwebrtc-fb021.appspot.com",
-  messagingSenderId: "160134247848",
-  appId: "1:160134247848:web:c29fca3f9aabe6ab21199d"
-};
+// const firebaseConfig = {
+//   apiKey: "AIzaSyDyxhO5BWrMgOGXnWJfCbTDcpUnGHCvfaQ",
+//   authDomain: "voicecallwebrtc-fb021.firebaseapp.com",
+//   projectId: "voicecallwebrtc-fb021",
+//   storageBucket: "voicecallwebrtc-fb021.appspot.com",
+//   messagingSenderId: "160134247848",
+//   appId: "1:160134247848:web:c29fca3f9aabe6ab21199d"
+// };
 
 console.log("Path =====>",path.join(__dirname, '../../voicecallwebrtc-serviceAccountKey.json'));
 const serviceAccount = require(path.join(__dirname, '../../voicecallwebrtc-serviceAccountKey.json'));
@@ -79,12 +82,12 @@ router.post('/offer', async (req, res) => {//id = phone-number-id
             console.log("answerDescription setRemoteDescription");
             const time = (new Date()).toLocaleTimeString();
 
-            const massage = `${JSON.stringify({
+            const massage = {
                 type: "answerDescription",
                 data:data.answer,
                 time:time,
                 clientype:clientype
-            })}`;
+            };
 
             sendMessageToAll(massage);
         }
@@ -100,12 +103,12 @@ router.post('/offer', async (req, res) => {//id = phone-number-id
             // pc.addIceCandidate(candidate);
             const time = (new Date()).toLocaleTimeString();
 
-            const massage = `${JSON.stringify({
+            const massage = {
               type: "answerIceCandidates",
               data:data,
               time:time,
               clientype:clientype
-            })}`;
+            };
 
             sendMessageToAll(massage);
         }
@@ -143,12 +146,12 @@ router.post('/answer', async (req, res) => {//id = phone-number-id
             console.log("offerCandidate's ICE data",data);
             const time = (new Date()).toLocaleTimeString();
 
-            const massage = `${JSON.stringify({
+            const massage = {
               type: "offerIceCandidates",
               data:data,
               time:time,
               clientype:clientype
-            })}`;
+            };
 
             sendMessageToAll(massage);
 
@@ -223,11 +226,24 @@ router.post('/answerICE', async (req, res) => {//id = phone-number-id
  * send message event
  */ 
 function sendMessageToAll(payload) {
-    clients.forEach(client => client.response.write(`data: ${JSON.stringify(payload)}\n\n`))
+    console.log("payload ------> ",clients);
+    clients.forEach(client => {
+        const data = 'data: ' + `${JSON.stringify(payload)}` + '\n\n';
+        client.response.write(data);
+        client.response.flush();
+    })
+}
+
+const emitSSE= (res, id, data) =>{
+    res.write('id: ' + id + '\n');
+    res.write('data: ' + `${JSON.stringify({
+        offerType: "offer",
+        time:data
+      })}` + '\n\n');
+    res.flush()
 }
 
 const handleSSE = (req, response) =>{
-
   response.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
@@ -236,12 +252,14 @@ const handleSSE = (req, response) =>{
 
   const time = (new Date()).toLocaleTimeString();
 
-  const data = `${JSON.stringify({
+  const data = 'data: ' + `${JSON.stringify({
     offerType: "offer",
     time:time
-  })}`;
+  })}` + '\n\n';
 
+  console.log("data ===> ",data);
   response.write(data);
+  response.flush();   
 
   const clientId = Date.now();
   
@@ -257,12 +275,17 @@ const handleSSE = (req, response) =>{
     // clients = clients.filter(client => client.id !== clientId);
   });
 //   const id = (new Date()).toLocaleTimeString();
-  // Sends a SSE every 3 seconds on a single connection.
+//   Sends a SSE every 3 seconds on a single connection.
 //   setInterval(function() {
-//     emitSSE(res, id, (new Date()).toLocaleTimeString());
-//   }, sendInterval);
+//     emitSSE(response, id, (new Date()).toLocaleTimeString());
+//   }, 3000);
 
-//   emitSSE(res, req.id, req.dateTime);
+    // response.write('data: ' + `${JSON.stringify({
+    //     offerType: "offer",
+    //     time:id
+    //   })}` + '\n\n');
+    // response.flush();
+//   emitSSE(response, id, (new Date()).toLocaleTimeString());
 }
 
 //use it

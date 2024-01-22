@@ -3,6 +3,7 @@ const path = require('path');
 const bodyParser = require('body-parser');
 const app = express();
 const http = require('http').createServer(app);
+const compression = require('compression');
 
 
 
@@ -11,7 +12,7 @@ const port = 5300
 // const requestIp = require('ip');
 
 app.use(express.static(path.join(__dirname, '../public')));
-
+app.use(compression())
 app.use(bodyParser.json());
 app.use(express.json())
 

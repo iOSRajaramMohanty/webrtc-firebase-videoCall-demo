@@ -32,11 +32,65 @@ hangupButton.disabled = true;
 
 callInput.value = "";
 
+//Events
+//url can be your server url
+const url = "http://localhost:5300/stream"
+
+const addEventListenerForCall = () =>{
+  if ('EventSource' in window) {
+    let source = new EventSource(url)
+  
+    source.addEventListener('message', function(e) { 
+      console.log("message ==> ",e.data);
+
+      const meg = JSON.parse(e.data);    
+      switch (meg.type) {
+        case "offerIceCandidates":
+          if (clientype === meg.clientype){
+            console.log("offerIceCandidates ==> ",meg.data);
+            const offerCandidate = new RTCIceCandidate(meg.data);
+            pc.addIceCandidate(offerCandidate);
+          }
+          break;
+        case "answerIceCandidates":
+          if (clientype === meg.clientype){
+            console.log("answerIceCandidates ==> ",meg.data);
+            const answerCandidate = new RTCIceCandidate(meg.data);
+            pc.addIceCandidate(answerCandidate);
+          }
+          break;
+        case "answerDescription":
+          if (clientype === meg.clientype){
+            console.log("remote answerDescription ==> ",meg.data);
+            const answerDescription = new RTCSessionDescription(meg.data);
+            pc.setRemoteDescription(answerDescription);
+          }
+          break;
+        default:
+          break;
+      }
+    }, false);
+  
+    source.addEventListener('open', function(e) {
+       // successful connection.
+       console.log("connection open");
+      }, false);
+  
+    source.addEventListener('error', function(e) {
+        // error occurred
+        console.log("onError ==>",e);
+    }, false);
+  }
+}
+
+addEventListenerForCall();
+
 // 1. Setup media sources
 webcamButton.onclick = async () => {
   console.log("Setup media sources");
   pc = new RTCPeerConnection(servers);
-  localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+  // localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+  localStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
   remoteStream = new MediaStream();
 
   // Push tracks from local stream to peer connection
@@ -54,8 +108,6 @@ webcamButton.onclick = async () => {
 
   // webcamVideo.srcObject = localStream;
   remoteVideo.srcObject = remoteStream;
-
-  addEventListenerForCall();
 
   callButton.disabled = false;
   answerButton.disabled = false;
@@ -194,55 +246,6 @@ hangupButton.onclick = async () => {
 
   callInput.value = "";
 };
-
-
-//Events
-//url can be your server url
-const addEventListenerForCall = () =>{
-  if ('EventSource' in window) {
-    let source = new EventSource(`${apiUrl}stream`)
-  
-    source.addEventListener('message', function(e) { 
-      const meg = JSON.parse(JSON.parse(e.data));    
-      switch (meg.type) {
-        case "offerIceCandidates":
-          if (clientype === meg.clientype){
-            console.log("offerIceCandidates ==> ",meg.data);
-            const offerCandidate = new RTCIceCandidate(meg.data);
-            pc.addIceCandidate(offerCandidate);
-          }
-          break;
-        case "answerIceCandidates":
-          if (clientype === meg.clientype){
-            console.log("answerIceCandidates ==> ",meg.data);
-            const answerCandidate = new RTCIceCandidate(meg.data);
-            pc.addIceCandidate(answerCandidate);
-          }
-          break;
-        case "answerDescription":
-          if (clientype === meg.clientype){
-            console.log("remote answerDescription ==> ",meg.data);
-            const answerDescription = new RTCSessionDescription(meg.data);
-            pc.setRemoteDescription(answerDescription);
-          }
-          break;
-        default:
-          break;
-      }
-    }, false);
-  
-    source.addEventListener('open', function(e) {
-       // successful connection.
-       console.log("connection open");
-      }, false);
-  
-    source.addEventListener('error', function(e) {
-        // error occurred
-        console.log("onError ==>",e);
-    }, false);
-  }
-}
-
 
 
 
