@@ -122,9 +122,6 @@ webcamButton.onclick = async () => {
 // 2. Create an offer
 callButton.onclick = async () => {
   // Reference Firestore collections for signaling
-  /*const callDoc = firestore.collection('calls').doc();
-  const offerCandidates = callDoc.collection('offerCandidates');
-  const answerCandidates = callDoc.collection('answerCandidates');*/
   clientype = "caller";
   const callId = await getCallID();
   callInput.value = callId.id;
@@ -150,30 +147,6 @@ callButton.onclick = async () => {
 
   const data = await setOffer({clientype: clientype,offer:offer, id:callId.id});
   console.log(data);
-  // callInput.value = data.id;
-  // await callDoc.set({ offer });
-
-  // Listen for remote answer
-  /*callDoc.onSnapshot((snapshot) => {
-    const data = snapshot.data();
-    if (!pc.currentRemoteDescription && data?.answer) {
-      const answerDescription = new RTCSessionDescription(data.answer);
-      pc.setRemoteDescription(answerDescription);
-    }
-  });
-
-  // When answered, add candidate to peer connection
-  answerCandidates.onSnapshot((snapshot) => {
-    snapshot.docChanges().forEach((change) => {
-      if (change.type === 'added') {
-        let data = change.doc.data();
-        console.log("answerCandidate's ICE data",data);
-        const candidate = new RTCIceCandidate(data);
-        pc.addIceCandidate(candidate);
-      }
-    });
-  });*/
-
   // hangupButton.disabled = false;
 };
 
@@ -181,13 +154,8 @@ callButton.onclick = async () => {
 answerButton.onclick = async () => {
   clientype = "callee";
   const callId = callInput.value;
-  /*const callId = callInput.value;
-  const callDoc = firestore.collection('calls').doc(callId);
-  const answerCandidates = callDoc.collection('answerCandidates');
-  const offerCandidates = callDoc.collection('offerCandidates');*/
 
   pc.onicecandidate = (event) => {
-    // event.candidate && answerCandidates.add(event.candidate.toJSON());
     const answerIceCandidate = event.candidate && {
       answer_ice: event.candidate.toJSON(),
       id: callId,
@@ -196,7 +164,6 @@ answerButton.onclick = async () => {
     event.candidate && setAnswerIce(answerIceCandidate);
   };
 
-  // const callData = (await callDoc.get()).data();
 
   // const offerDescription = callData.offer;
   const offerData = await getOfferSdp(callId);
@@ -214,18 +181,6 @@ answerButton.onclick = async () => {
   const data = await setAnswer({clientype: clientype, answer:answer, id:callId});
   console.log(data);
 
-  // await callDoc.update({ answer });
-  /*offerCandidates.onSnapshot((snapshot) => {
-    snapshot.docChanges().forEach((change) => {
-      console.log(change);
-      if (change.type === 'added') {
-        let data = change.doc.data();
-        console.log("offerCandidate's ICE data",data);
-        const candidate = new RTCIceCandidate(data);
-        pc.addIceCandidate(candidate);
-      }
-    });
-  });*/
 };
 
 // 3. Hangup the call
@@ -246,6 +201,7 @@ hangupButton.onclick = async () => {
   source.removeEventListener("message", handleMessageEvent, false);
   source.removeEventListener("open", handleOpenEvent, false);
   source.removeEventListener("error", handleErrorEvent, false);
+  source = null;
 
   callButton.disabled = true;
   answerButton.disabled = true;

@@ -3,18 +3,7 @@ const router = express.Router();
 const path = require('path');
 const { initializeApp, applicationDefault, cert } = require('firebase-admin/app');
 const { getFirestore, Timestamp, FieldValue, Filter } = require('firebase-admin/firestore');
-// var SSE = require('express-sse');
-// var sse = new SSE();
-// const cors = require('cors');
 
-// const firebaseConfig = {
-//   apiKey: "AIzaSyDyxhO5BWrMgOGXnWJfCbTDcpUnGHCvfaQ",
-//   authDomain: "voicecallwebrtc-fb021.firebaseapp.com",
-//   projectId: "voicecallwebrtc-fb021",
-//   storageBucket: "voicecallwebrtc-fb021.appspot.com",
-//   messagingSenderId: "160134247848",
-//   appId: "1:160134247848:web:c29fca3f9aabe6ab21199d"
-// };
 
 console.log("Path =====>",path.join(__dirname, '../../voicecallwebrtc-serviceAccountKey.json'));
 const serviceAccount = require(path.join(__dirname, '../../voicecallwebrtc-serviceAccountKey.json'));
@@ -74,10 +63,6 @@ router.post('/offer', async (req, res) => {//id = phone-number-id
     callDoc.onSnapshot((snapshot) => {
         const data = snapshot.data();
         console.log("data?.answer =====> ",data?.answer);
-        // if (!pc.currentRemoteDescription && data?.answer) {
-        //   const answerDescription = new RTCSessionDescription(data.answer);
-        //   pc.setRemoteDescription(answerDescription);
-        // }
         if (data?.answer) {
             console.log("answerDescription setRemoteDescription");
             const time = (new Date()).toLocaleTimeString();
@@ -99,8 +84,6 @@ router.post('/offer', async (req, res) => {//id = phone-number-id
         if (change.type === 'added') {
             let data = change.doc.data();
             console.log("answerCandidate's ICE data",data);
-            // const candidate = new RTCIceCandidate(data);
-            // pc.addIceCandidate(candidate);
             const time = (new Date()).toLocaleTimeString();
 
             const massage = {
@@ -116,8 +99,11 @@ router.post('/offer', async (req, res) => {//id = phone-number-id
     });  
     // console.log(req.body);
     try {
-        res.json({ success : true
-         });
+        res.json(
+            { 
+                success : true
+            }
+        );
     } catch (error) {
         res.status(400).json(error);
     }
@@ -155,15 +141,16 @@ router.post('/answer', async (req, res) => {//id = phone-number-id
 
             sendMessageToAll(massage);
 
-            // const candidate = new RTCIceCandidate(data);
-            // pc.addIceCandidate(candidate);
           }
         });
       });
 
     try {
-        res.json({ success : true
-         });
+        res.json(
+            { 
+                success : true
+            }
+        );
     } catch (error) {
         res.status(400).json(error);
     }
@@ -182,9 +169,6 @@ router.post('/offerICE', async (req, res) => {//id = phone-number-id
     // console.log("callDoc.id =====>",callDoc.id);
 
     offerCandidates.add(offer_ice);
-
-    // const offer = req.body.offer;
-    // await callDoc.set({ offer });
 
     // console.log(req.body);
     try {
@@ -210,8 +194,6 @@ router.post('/answerICE', async (req, res) => {//id = phone-number-id
 
     answerCandidates.add(answer_ice);
 
-    
-
     // console.log(req.body);
     try {
         res.json({ success : true,
@@ -228,19 +210,14 @@ router.post('/answerICE', async (req, res) => {//id = phone-number-id
 function sendMessageToAll(payload) {
     console.log("payload ------> ",clients);
     clients.forEach(client => {
-        const data = 'data: ' + `${JSON.stringify(payload)}` + '\n\n';
-        client.response.write(data);
-        client.response.flush();
+        sendMessage(client.response, payload);
     })
 }
 
-const emitSSE= (res, id, data) =>{
-    res.write('id: ' + id + '\n');
-    res.write('data: ' + `${JSON.stringify({
-        offerType: "offer",
-        time:data
-      })}` + '\n\n');
-    res.flush()
+const sendMessage = (res, payload) => {
+    const data = 'data: ' + `${JSON.stringify(payload)}` + '\n\n';
+    res.write(data);
+    res.flush();
 }
 
 const handleSSE = (req, response) =>{
@@ -249,17 +226,6 @@ const handleSSE = (req, response) =>{
     'Cache-Control': 'no-cache',
     'Connection': 'keep-alive'
   });
-
-  const time = (new Date()).toLocaleTimeString();
-
-  const data = 'data: ' + `${JSON.stringify({
-    offerType: "offer",
-    time:time
-  })}` + '\n\n';
-
-  console.log("data ===> ",data);
-  response.write(data);
-  response.flush();   
 
   const clientId = Date.now();
   
@@ -270,22 +236,33 @@ const handleSSE = (req, response) =>{
     
   clients.push(newClient);
 
+  const time = (new Date()).toLocaleTimeString();
+
+  const payload = 'data: ' + `${JSON.stringify({
+    offerType: "offer",
+    time:time
+  })}` + '\n\n';
+
+  console.log("payload ===> ",payload);
+
+  sendMessage(response, payload); 
+
   req.on('close', () => {
     console.log(`Connection closed`);
     // clients = clients.filter(client => client.id !== clientId);
   });
-//   const id = (new Date()).toLocaleTimeString();
+
 //   Sends a SSE every 3 seconds on a single connection.
 //   setInterval(function() {
-//     emitSSE(response, id, (new Date()).toLocaleTimeString());
+//     const time = (new Date()).toLocaleTimeString();
+
+//     const payload = 'data: ' + `${JSON.stringify({
+//         offerType: "offer",
+//         time:time
+//     })}` + '\n\n';
+//     sendMessage(response, payload); 
 //   }, 3000);
 
-    // response.write('data: ' + `${JSON.stringify({
-    //     offerType: "offer",
-    //     time:id
-    //   })}` + '\n\n');
-    // response.flush();
-//   emitSSE(response, id, (new Date()).toLocaleTimeString());
 }
 
 //use it
