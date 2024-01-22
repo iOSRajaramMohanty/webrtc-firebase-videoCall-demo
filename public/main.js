@@ -15,6 +15,7 @@ let localStream = null;
 let remoteStream = null;
 let sender;
 let clientype = null;
+let source = null;
 
 // HTML elements
 const webcamButton = document.getElementById('webcamButton');
@@ -36,58 +37,61 @@ callInput.value = "";
 //url can be your server url
 const url = "http://localhost:5300/stream"
 
-const addEventListenerForCall = () =>{
-  if ('EventSource' in window) {
-    let source = new EventSource(url)
-  
-    source.addEventListener('message', function(e) { 
-      console.log("message ==> ",e.data);
+const handleMessageEvent = (e) =>{
+  console.log("message ==> ",e.data);
 
-      const meg = JSON.parse(e.data);    
-      switch (meg.type) {
-        case "offerIceCandidates":
-          if (clientype === meg.clientype){
-            console.log("offerIceCandidates ==> ",meg.data);
-            const offerCandidate = new RTCIceCandidate(meg.data);
-            pc.addIceCandidate(offerCandidate);
-          }
-          break;
-        case "answerIceCandidates":
-          if (clientype === meg.clientype){
-            console.log("answerIceCandidates ==> ",meg.data);
-            const answerCandidate = new RTCIceCandidate(meg.data);
-            pc.addIceCandidate(answerCandidate);
-          }
-          break;
-        case "answerDescription":
-          if (clientype === meg.clientype){
-            console.log("remote answerDescription ==> ",meg.data);
-            const answerDescription = new RTCSessionDescription(meg.data);
-            pc.setRemoteDescription(answerDescription);
-          }
-          break;
-        default:
-          break;
+  const meg = JSON.parse(e.data);    
+  switch (meg.type) {
+    case "offerIceCandidates":
+      if (clientype === meg.clientype){
+        console.log("offerIceCandidates ==> ",meg.data);
+        const offerCandidate = new RTCIceCandidate(meg.data);
+        pc.addIceCandidate(offerCandidate);
       }
-    }, false);
-  
-    source.addEventListener('open', function(e) {
-       // successful connection.
-       console.log("connection open");
-      }, false);
-  
-    source.addEventListener('error', function(e) {
-        // error occurred
-        console.log("onError ==>",e);
-    }, false);
+      break;
+    case "answerIceCandidates":
+      if (clientype === meg.clientype){
+        console.log("answerIceCandidates ==> ",meg.data);
+        const answerCandidate = new RTCIceCandidate(meg.data);
+        pc.addIceCandidate(answerCandidate);
+      }
+      break;
+    case "answerDescription":
+      if (clientype === meg.clientype){
+        console.log("remote answerDescription ==> ",meg.data);
+        const answerDescription = new RTCSessionDescription(meg.data);
+        pc.setRemoteDescription(answerDescription);
+      }
+      break;
+    default:
+      break;
   }
 }
 
-addEventListenerForCall();
+const handleOpenEvent = (e) =>{
+  // successful connection.
+  console.log("connection open");
+}
+
+const handleErrorEvent = (e) =>{
+  // error occurred
+  console.log("onError ==>",e);
+}
+
+const addEventListenerForCall = () =>{
+  if ('EventSource' in window) {
+    source = new EventSource(url)
+
+    source.addEventListener('message', handleMessageEvent, false);
+    source.addEventListener('open', handleOpenEvent, false);
+    source.addEventListener('error', handleErrorEvent, false);
+  }
+}
 
 // 1. Setup media sources
 webcamButton.onclick = async () => {
   console.log("Setup media sources");
+  addEventListenerForCall();
   pc = new RTCPeerConnection(servers);
   // localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
   localStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
@@ -238,6 +242,10 @@ hangupButton.onclick = async () => {
   pc.removeTrack(sender);
   pc.close();
   pc = null;
+
+  source.removeEventListener("message", handleMessageEvent, false);
+  source.removeEventListener("open", handleOpenEvent, false);
+  source.removeEventListener("error", handleErrorEvent, false);
 
   callButton.disabled = true;
   answerButton.disabled = true;
