@@ -1,8 +1,7 @@
-
 const servers = {
   iceServers: [
     {
-      urls: ['stun:stun1.l.google.com:19302', 'stun:stun2.l.google.com:19302'],
+      urls: ["stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302"],
     },
   ],
   iceCandidatePoolSize: 10,
@@ -18,78 +17,84 @@ let clientype = null;
 let source = null;
 
 // HTML elements
-const webcamButton = document.getElementById('webcamButton');
+const webcamButton = document.getElementById("webcamButton");
 // const webcamVideo = document.getElementById('webcamVideo');
-const callButton = document.getElementById('callButton');
-const callInput = document.getElementById('callInput');
-const answerButton = document.getElementById('answerButton');
-const remoteVideo = document.getElementById('remoteVideo');
-const hangupButton = document.getElementById('hangupButton');
+const callButton = document.getElementById("callButton");
+const callInput = document.getElementById("callInput");
+const answerButton = document.getElementById("answerButton");
+const remoteVideo = document.getElementById("remoteVideo");
+const hangupButton = document.getElementById("hangupButton");
+const connectButton = document.getElementById("connectButton");
 
-const offerSDPTextView = document.getElementById('offerSDP');
-const answerSDPTextView = document.getElementById('answerSDP');
+const offerSDPTextView = document.getElementById("offerSDP");
+const answerSDPTextView = document.getElementById("answerSDP");
 
 callButton.disabled = true;
 answerButton.disabled = true;
 webcamButton.disabled = false;
 hangupButton.disabled = true;
+connectButton.disabled = true;
 
 callInput.value = "";
 
 //Events
 //url can be your server url
-const url = "http://localhost:5300/stream"
+const url = "http://localhost:5300/stream";
 
-const handleMessageEvent = (e) =>{
-  console.log("message ==> ",e.data);
+const handleMessageEvent = (e) => {
+  console.log("message ==> ", e.data);
 
-  const meg = JSON.parse(e.data);    
+  const meg = JSON.parse(e.data);
   switch (meg.type) {
     case "offerIceCandidates":
-      if (clientype === meg.clientype){
-        console.log("offerIceCandidates ==> ",meg.data);
+      if (clientype === meg.clientype) {
+        console.log("offerIceCandidates ==> ", meg.data);
         const offerCandidate = new RTCIceCandidate(meg.data);
         // pc.addIceCandidate(offerCandidate);
       }
       break;
     case "answerIceCandidates":
-      if (clientype === meg.clientype){
-        console.log("answerIceCandidates ==> ",meg.data);
+      if (clientype === meg.clientype) {
+        console.log("answerIceCandidates ==> ", meg.data);
         const answerCandidate = new RTCIceCandidate(meg.data);
         // pc.addIceCandidate(answerCandidate);
       }
       break;
     case "answerDescription":
-      if (clientype === meg.clientype){
-        console.log("remote answerDescription ==> ",meg.data);
-        const answerDescription = new RTCSessionDescription(meg.data);
-        pc.setRemoteDescription(answerDescription).then(a=>console.log("done"));
+      if (clientype === meg.clientype) {
+        console.log("remote answerDescription ==> ", meg.data);
+        // setRemoteAnswer(meg.data);
+
+        // const answerDescription = new RTCSessionDescription(meg.data);
+        // pc.setRemoteDescription(answerDescription).then((a) =>
+        //   console.log("done")
+        // );
       }
       break;
     default:
       break;
   }
-}
+};
 
-const handleOpenEvent = (e) =>{
+const handleOpenEvent = (e) => {
   // successful connection.
   console.log("connection open");
-}
+};
 
-const handleErrorEvent = (e) =>{
+const handleErrorEvent = (e) => {
   // error occurred
-  console.log("onError ==>",e);
-}
+  console.log("onError ==>", e);
+};
 
-const addEventListenerForCall = () =>{
-  if ('EventSource' in window) {
-    source = new EventSource(url)
+const addEventListenerForCall = () => {
+  if ("EventSource" in window) {
+    source = new EventSource(url);
 
-    source.addEventListener('message', handleMessageEvent, false);
-    source.addEventListener('open', handleOpenEvent, false);
-    source.addEventListener('error', handleErrorEvent, false);
+    source.addEventListener("message", handleMessageEvent, false);
+    source.addEventListener("open", handleOpenEvent, false);
+    source.addEventListener("error", handleErrorEvent, false);
   }
-}
+};
 
 // 1. Setup media sources
 webcamButton.onclick = async () => {
@@ -97,7 +102,10 @@ webcamButton.onclick = async () => {
   addEventListenerForCall();
   pc = new RTCPeerConnection(servers);
   // localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-  localStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+  localStream = await navigator.mediaDevices.getUserMedia({
+    video: false,
+    audio: true,
+  });
   remoteStream = new MediaStream();
 
   // Push tracks from local stream to peer connection
@@ -120,6 +128,7 @@ webcamButton.onclick = async () => {
   answerButton.disabled = false;
   webcamButton.disabled = true;
   hangupButton.disabled = false;
+  connectButton.disabled = false;
 };
 
 // 2. Create an offer
@@ -132,7 +141,7 @@ callButton.onclick = async () => {
   // Get candidates for caller, save to db
   pc.onicecandidate = (event) => {
     // console.log("offerCandidates ======> ",event.candidate.toJSON())
-    console.log(" NEW ICE candidate!! Reprinting SDP\n" )
+    console.log(" NEW ICE candidate!! Reprinting SDP\n");
     console.log(JSON.stringify(pc.localDescription));
     // const offerIceCandidate = event.candidate && {
     //   connection: {
@@ -157,23 +166,39 @@ callButton.onclick = async () => {
   const offerDescription = await pc.createOffer();
   await pc.setLocalDescription(offerDescription);
 
-  setTimeout( async () =>{
+  setTimeout(async () => {
     offerSDPTextView.value = pc.localDescription.sdp;
     const connectPayload = {
-        call_id:callId.id,
-        action: clientype,
-        connection: {
-            webrtc:{
-                sdp : pc.localDescription.sdp
-            }
-        }
-    }
+      call_id: callId.id,
+      action: clientype,
+      connection: {
+        webrtc: {
+          sdp: pc.localDescription.sdp,
+        },
+      },
+    };
 
     const data = await connectCall(connectPayload);
     console.log(data);
-  },2000)
-  
+  }, 2000);
+
   // hangupButton.disabled = false;
+};
+
+connectButton.onclick = () => {
+  const answerSdp = answerSDPTextView.value;
+
+  const answerDescription = {
+    sdp: answerSdp,
+    type: "answer",
+  };
+
+  setRemoteAnswer(answerDescription);
+};
+
+const setRemoteAnswer = (answerDes) => {
+  const answerDescription = new RTCSessionDescription(answerDes);
+  pc.setRemoteDescription(answerDescription).then((a) => console.log("done"));
 };
 
 // 3. Answer the call with the unique ID
@@ -181,64 +206,63 @@ answerButton.onclick = async () => {
   clientype = "accept";
   const callId = callInput.value;
 
-    pc.onicecandidate = (event) => {
-      console.log(" NEW ice candidnat!! on localconnection reprinting SDP " )
-      console.log(JSON.stringify(pc.localDescription) )
+  pc.onicecandidate = (event) => {
+    console.log(" NEW ice candidnat!! on localconnection reprinting SDP ");
+    console.log(JSON.stringify(pc.localDescription));
 
-      // const answerIceCandidate = event.candidate &&  {
-      //   connection: {
-      //     webrtc:{
-      //         ice : event.candidate.toJSON()
-      //     }
-      //   },
-      //   ice_type:"answer",
-      //   call_id: callId,
-      // };
-      // event.candidate && setIce(answerIceCandidate);
-    };
+    // const answerIceCandidate = event.candidate &&  {
+    //   connection: {
+    //     webrtc:{
+    //         ice : event.candidate.toJSON()
+    //     }
+    //   },
+    //   ice_type:"answer",
+    //   call_id: callId,
+    // };
+    // event.candidate && setIce(answerIceCandidate);
+  };
 
-    //****get offer sdp from textview */
-    let offerData = null
-    if (callId != ""){
-      if (offerSDPTextView.value != ""){
-        offerData = offerSDPTextView.value;//offerSDPTextView.value;//await getOfferSdp(callId);
-      }else{
-        //****Get offer from firestore as per the callid*/
-        const offerRowData = await getOfferSdp(callId);//offerSDPTextView.value;//await getOfferSdp(callId);
-        offerData = offerRowData.offerDescription.sdp;
-      }
-    }else{
-      console.log("offer sdp and client id is missing");
-      return;
+  //****get offer sdp from textview */
+  let offerData = null;
+  if (callId != "") {
+    if (offerSDPTextView.value != "") {
+      offerData = offerSDPTextView.value; //offerSDPTextView.value;//await getOfferSdp(callId);
+    } else {
+      //****Get offer from firestore as per the callid*/
+      const offerRowData = await getOfferSdp(callId); //offerSDPTextView.value;//await getOfferSdp(callId);
+      offerData = offerRowData.offerDescription.sdp;
     }
-   
-    const offerDescription = {
-      sdp: offerData,
-      type: "offer",
+  } else {
+    console.log("offer sdp and client id is missing");
+    return;
+  }
+
+  const offerDescription = {
+    sdp: offerData,
+    type: "offer",
+  };
+
+  console.log("offerData ======> ", offerData);
+  await pc.setRemoteDescription(offerDescription);
+  console.log("done");
+  const answerDescription = await pc.createAnswer();
+  await pc.setLocalDescription(answerDescription);
+
+  setTimeout(async () => {
+    answerSDPTextView.value = pc.localDescription.sdp;
+    const connectPayload = {
+      call_id: callId,
+      action: clientype,
+      connection: {
+        webrtc: {
+          sdp: pc.localDescription.sdp,
+        },
+      },
     };
 
-    console.log("offerData ======> ",offerData);
-    await pc.setRemoteDescription(offerDescription);
-    console.log("done");
-    const answerDescription = await pc.createAnswer();
-    await pc.setLocalDescription(answerDescription);
-
-    setTimeout( async () =>{ 
-      answerSDPTextView.value = pc.localDescription.sdp;
-      const connectPayload = {
-        call_id:callId,
-        action: clientype,
-        connection: {
-            webrtc:{
-                sdp : pc.localDescription.sdp
-            }
-        }
-      }
-  
-      const data = await connectCall(connectPayload);
-      console.log(data);
-    },2000);
-    
+    const data = await connectCall(connectPayload);
+    console.log(data);
+  }, 2000);
 };
 
 // 3. Hangup the call
@@ -246,8 +270,8 @@ hangupButton.onclick = async () => {
   remoteStream.clone();
   remoteStream = null;
   // webcamVideo.srcObject=null;
-  remoteVideo.srcObject= null;
-  localStream.getTracks().forEach(function(track) {
+  remoteVideo.srcObject = null;
+  localStream.getTracks().forEach(function (track) {
     track.stop();
   });
   localStream = null;
@@ -264,86 +288,84 @@ hangupButton.onclick = async () => {
   offerSDPTextView.value = "";
   answerSDPTextView.value = "";
 
-
   callButton.disabled = true;
   answerButton.disabled = true;
   webcamButton.disabled = false;
   hangupButton.disabled = true;
+  connectButton.disabled = true;
 
   callInput.value = "";
 };
 
-
-
-
-
 //Api call methodes
 const postRequestOption = (requestBody) => {
   return {
-    method: 'POST',
+    method: "POST",
     body: JSON.stringify(requestBody),
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
   };
-}
+};
 
 const getRequestOption = () => {
   return {
-    method: 'GET',
+    method: "GET",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
   };
-}
+};
 
 const connectCall = async (offer) => {
-	const response = await fetch(`${apiUrl}calls`, postRequestOption(offer));
-  
+  const response = await fetch(`${apiUrl}calls`, postRequestOption(offer));
+
   if (!response.ok) {
-		throw new Error(`HTTP error! status: ${response.status}`);
-	}
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
 
   const data = await response.json();
   return data;
-}
+};
 
 const setIce = async (offerIce) => {
-	const response = await fetch(`${apiUrl}icecandidate`, postRequestOption(offerIce));
-  
+  const response = await fetch(
+    `${apiUrl}icecandidate`,
+    postRequestOption(offerIce)
+  );
+
   if (!response.ok) {
-		throw new Error(`HTTP error! status: ${response.status}`);
-	}
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
 
   const data = await response.json();
   return data;
-}
+};
 
 const getCallID = async () => {
-	const response = await fetch(`${apiUrl}register`, {
-    method: 'POST',
+  const response = await fetch(`${apiUrl}register`, {
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
     },
   });
-  
+
   if (!response.ok) {
-		throw new Error(`HTTP error! status: ${response.status}`);
-	}
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
 
   const data = await response.json();
   return data;
-}
+};
 
 const getOfferSdp = async (callId) => {
-	const response = await fetch(`${apiUrl}${callId}/offerSdp`, getRequestOption);
-  
+  const response = await fetch(`${apiUrl}${callId}/offerSdp`, getRequestOption);
+
   if (!response.ok) {
-		throw new Error(`HTTP error! status: ${response.status}`);
-	}
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
 
   const data = await response.json();
-  console.log("data ======> ",data);
+  console.log("data ======> ", data);
   return data;
-}
-
+};

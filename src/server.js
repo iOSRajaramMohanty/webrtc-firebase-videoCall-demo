@@ -1,22 +1,20 @@
-const express = require('express');
-const path = require('path');
-const bodyParser = require('body-parser');
+const express = require("express");
+const path = require("path");
+const bodyParser = require("body-parser");
 const app = express();
-const http = require('http').createServer(app);
-const compression = require('compression');
+const http = require("http").createServer(app);
+const compression = require("compression");
 
-
-
-const port = 5300
+const port = 5300;
 
 // const requestIp = require('ip');
 
-app.use(express.static(path.join(__dirname, '../public')));
-app.use(compression())
+app.use(express.static(path.join(__dirname, "../public")));
+app.use(compression());
 app.use(bodyParser.json());
-app.use(express.json())
+app.use(express.json());
 
-app.use('/', require('../routes/apis/firebase'));
+app.use("/", require("../routes/apis/firebase"));
 
 // console.log(requestIp.address());
 
@@ -29,6 +27,3 @@ app.use('/', require('../routes/apis/firebase'));
 http.listen(process.env.PORT || port, () => {
   console.log(`listening on:${port}`);
 });
-
-
-
