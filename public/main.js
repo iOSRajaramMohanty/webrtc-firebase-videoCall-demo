@@ -244,6 +244,7 @@ answerButton.onclick = async () => {
       //****Get offer from firestore as per the callid*/
       const offerRowData = await getOfferSdp(callId); //offerSDPTextView.value;//await getOfferSdp(callId);
       offerData = offerRowData.offerDescription.sdp;
+      offerSDPTextView.value = offerData;
     }
   } else {
     console.log("offer sdp and client id is missing");
