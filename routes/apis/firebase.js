@@ -14,10 +14,10 @@ initializeApp({
 const firestore = getFirestore();
 
 let clients = [];
-
+let callID = null;
 router.post('/register', (req, res) => {
     const callDoc = firestore.collection('calls').doc();
-
+    callID = callDoc.id;
     try {
         res.json({ 
             success : true,

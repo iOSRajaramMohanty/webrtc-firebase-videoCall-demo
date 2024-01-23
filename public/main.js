@@ -169,8 +169,6 @@ answerButton.onclick = async () => {
   clientype = "accept";
   const callId = callInput.value;
 
-  // if (callId != "" && offerSDPTextView.value != ""){
-
     pc.onicecandidate = (event) => {
       const answerIceCandidate = event.candidate &&  {
         connection: {
@@ -184,15 +182,28 @@ answerButton.onclick = async () => {
       event.candidate && setIce(answerIceCandidate);
     };
 
-
-    // const offerDescription = callData.offer;
-    const offerData = await getOfferSdp(callId);//offerSDPTextView.value;//await getOfferSdp(callId);
+    //****get offer sdp from textview */
+    let offerData = null
+    if (callId != ""){
+      if (offerSDPTextView.value != ""){
+        offerData = offerSDPTextView.value;//offerSDPTextView.value;//await getOfferSdp(callId);
+      }else{
+        //****Get offer from firestore as per the callid*/
+        const offerRowData = await getOfferSdp(callId);//offerSDPTextView.value;//await getOfferSdp(callId);
+        offerData = offerRowData.offerDescription.sdp;
+      }
+    }else{
+      console.log("offer sdp and client id is missing");
+      return;
+    }
+   
     const offerDescription = {
       sdp: offerData,
       type: "offer",
     };
+
     console.log("offerData ======> ",offerData);
-    await pc.setRemoteDescription(new RTCSessionDescription(offerData.offerDescription));
+    await pc.setRemoteDescription(new RTCSessionDescription(offerDescription));
 
     const answerDescription = await pc.createAnswer();
     await pc.setLocalDescription(answerDescription);
@@ -210,9 +221,6 @@ answerButton.onclick = async () => {
 
     const data = await connectCall(connectPayload);
     console.log(data);
-  // }else {
-  //   console.log("offer sdp and client id is missing");
-  // }
 };
 
 // 3. Hangup the call
