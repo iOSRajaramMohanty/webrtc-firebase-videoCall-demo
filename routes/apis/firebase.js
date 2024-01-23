@@ -28,23 +28,6 @@ router.post('/register', (req, res) => {
     }
 });
 
-router.get('/:id/offerSdp', async (req, res) => {
-    // console.log("req.params.id --->",req.params.id);
-    const callId = req.params.id;
-    const callDoc = firestore.collection('calls').doc(callId);
-    const callData = (await callDoc.get()).data();
-    const offerDescription = callData.offer;
-
-    try {
-        res.json({ 
-            success : true,
-            offerDescription:offerDescription
-         });
-    } catch (error) {
-        res.status(400).json(error);
-    }
-});
-
 router.post('/calls', async (req, res) => {//id = phone-number-id
     // {
     //     call_id:"123",
@@ -72,8 +55,6 @@ router.post('/calls', async (req, res) => {//id = phone-number-id
             };
 
             const callDoc = firestore.collection('calls').doc(callId);
-            const offerCandidates = callDoc.collection('offerCandidates');
-            const answerCandidates = callDoc.collection('answerCandidates');
 
             console.log("callDoc.id =====>",callId);
 
@@ -98,26 +79,6 @@ router.post('/calls', async (req, res) => {//id = phone-number-id
                 }
             });
 
-            // When answered, add candidate to peer connection
-            answerCandidates.onSnapshot((snapshot) => {
-                snapshot.docChanges().forEach((change) => {
-                if (change.type === 'added') {
-                    let data = change.doc.data();
-                    console.log("answerCandidate's ICE data",data);
-                    const time = (new Date()).toLocaleTimeString();
-
-                    const massage = {
-                        type: "answerIceCandidates",
-                        data:data,
-                        time:time,
-                        clientype:action
-                    };
-
-                    sendMessageToAll(massage);
-                }
-                });
-            });
-
             res.json(
                 { 
                     success : true,
@@ -129,8 +90,6 @@ router.post('/calls', async (req, res) => {//id = phone-number-id
 
         } else {
             const callDoc = firestore.collection('calls').doc(callId);
-            const offerCandidates = callDoc.collection('offerCandidates');
-            const answerCandidates = callDoc.collection('answerCandidates');
 
             console.log("callDoc.id =====>",callId);
             const answer = {
@@ -139,28 +98,6 @@ router.post('/calls', async (req, res) => {//id = phone-number-id
             };
 
             await callDoc.update({ answer });
-
-            // console.log(req.body);
-            offerCandidates.onSnapshot((snapshot) => {
-                snapshot.docChanges().forEach((change) => {
-                console.log(change);
-                if (change.type === 'added') {
-                    let data = change.doc.data();
-                    console.log("offerCandidate's ICE data",data);
-                    const time = (new Date()).toLocaleTimeString();
-
-                    const massage = {
-                    type: "offerIceCandidates",
-                    data:data,
-                    time:time,
-                    clientype:action
-                    };
-
-                    sendMessageToAll(massage);
-
-                }
-                });
-            });
 
             res.json(
                 { 
@@ -174,52 +111,6 @@ router.post('/calls', async (req, res) => {//id = phone-number-id
     }
 });
 
-router.post('/icecandidate', async (req, res) => {//id = phone-number-id
-    // console.log("offerICE =====>",req.body);
-    // {
-    //     call_id:"123",
-    //     ice_type:"offer/answer",
-    //     connection: {
-    //         webrtc:{
-    //             ice : '<<ICE INFO>>'
-    //         }
-    //     }
-    // }
-
-    if (req.body.call_id === "" || req.body.call_id == undefined) {
-        res.status(400).json({error:"please register first"});
-    }else{
-        const callId = req.body.call_id;
-        const ice = req.body.connection?.webrtc?.ice;
-        const ice_type = req.body.ice_type; //ice_type: "offer/answer"
-
-        if (ice_type === "offer") {
-            const callDoc = firestore.collection('calls').doc(callId);
-            const offerCandidates = callDoc.collection('offerCandidates');
-            // const answerCandidates = callDoc.collection('answerCandidates');
-        
-            // console.log("callDoc.id =====>",callDoc.id);
-        
-            offerCandidates.add(ice);
-        }else if (ice_type === "answer") {
-            const callDoc = firestore.collection('calls').doc(callId);
-            // const offerCandidates = callDoc.collection('offerCandidates');
-            const answerCandidates = callDoc.collection('answerCandidates');
-        
-            // console.log("callDoc.id =====>",callDoc.id);
-        
-            answerCandidates.add(ice);
-        }
-
-        res.json(
-            { 
-                success : true,
-                call_id:callId
-            }
-        );
-        
-    }
-});
 
 /*
  * send message event
