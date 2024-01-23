@@ -25,6 +25,8 @@ const answerButton = document.getElementById("answerButton");
 const remoteVideo = document.getElementById("remoteVideo");
 const hangupButton = document.getElementById("hangupButton");
 const connectButton = document.getElementById("connectButton");
+const getAnswerSDPButton = document.getElementById("getAnswerSDPButton");
+
 
 const offerSDPTextView = document.getElementById("offerSDP");
 const answerSDPTextView = document.getElementById("answerSDP");
@@ -34,6 +36,7 @@ answerButton.disabled = true;
 webcamButton.disabled = false;
 hangupButton.disabled = true;
 connectButton.disabled = true;
+getAnswerSDPButton.disabled = true;
 
 callInput.value = "";
 
@@ -129,6 +132,8 @@ webcamButton.onclick = async () => {
   webcamButton.disabled = true;
   hangupButton.disabled = false;
   connectButton.disabled = false;
+  getAnswerSDPButton.disabled = false;
+
 };
 
 // 2. Create an offer
@@ -200,6 +205,14 @@ const setRemoteAnswer = (answerDes) => {
   const answerDescription = new RTCSessionDescription(answerDes);
   pc.setRemoteDescription(answerDescription).then((a) => console.log("done"));
 };
+
+getAnswerSDPButton.onclick = async () => {
+  const callId = callInput.value;
+  const answerRowData = await getAnswerSdp(callId); //offerSDPTextView.value;//await getOfferSdp(callId);
+  const answerData = answerRowData.answerDescription.sdp;
+
+  answerSDPTextView.value = answerData;
+}
 
 // 3. Answer the call with the unique ID
 answerButton.onclick = async () => {
@@ -293,6 +306,7 @@ hangupButton.onclick = async () => {
   webcamButton.disabled = false;
   hangupButton.disabled = true;
   connectButton.disabled = true;
+  getAnswerSDPButton.disabled = true;
 
   callInput.value = "";
 };
@@ -360,6 +374,18 @@ const getCallID = async () => {
 
 const getOfferSdp = async (callId) => {
   const response = await fetch(`${apiUrl}${callId}/offerSdp`, getRequestOption);
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  const data = await response.json();
+  console.log("data ======> ", data);
+  return data;
+};
+
+const getAnswerSdp = async (callId) => {
+  const response = await fetch(`${apiUrl}${callId}/answersdp`, getRequestOption);
 
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);

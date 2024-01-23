@@ -185,6 +185,19 @@ router.post("/calls", async (req, res) => {
   }
 });
 
+router.get("/:id/answersdp", async (req, res) => {
+    const callId = req.params.id;
+    const callDoc = firestore.collection("calls").doc(callId);
+    const callData = (await callDoc.get()).data();
+    const answerDescription = callData.answer;
+
+    // console.log(callDoc);
+    res.json({
+        success: true,
+        answerDescription: answerDescription,
+      });    
+});
+
 router.post("/icecandidate", async (req, res) => {
   //id = phone-number-id
   // console.log("offerICE =====>",req.body);
