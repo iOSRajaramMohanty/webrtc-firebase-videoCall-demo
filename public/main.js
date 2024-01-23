@@ -21,11 +21,10 @@ let source = null;
 const webcamButton = document.getElementById('webcamButton');
 // const webcamVideo = document.getElementById('webcamVideo');
 const callButton = document.getElementById('callButton');
-// const callInput = document.getElementById('callInput');
+const callInput = document.getElementById('callInput');
 const answerButton = document.getElementById('answerButton');
 const remoteVideo = document.getElementById('remoteVideo');
 const hangupButton = document.getElementById('hangupButton');
-const connectButton = document.getElementById('connectButton');
 
 const offerSDPTextView = document.getElementById('offerSDP');
 const answerSDPTextView = document.getElementById('answerSDP');
@@ -34,9 +33,8 @@ callButton.disabled = true;
 answerButton.disabled = true;
 webcamButton.disabled = false;
 hangupButton.disabled = true;
-connectButton.disabled = true;
 
-// callInput.value = "";
+callInput.value = "";
 
 //Events
 //url can be your server url
@@ -47,10 +45,25 @@ const handleMessageEvent = (e) =>{
 
   const meg = JSON.parse(e.data);    
   switch (meg.type) {
+    case "offerIceCandidates":
+      if (clientype === meg.clientype){
+        console.log("offerIceCandidates ==> ",meg.data);
+        const offerCandidate = new RTCIceCandidate(meg.data);
+        // pc.addIceCandidate(offerCandidate);
+      }
+      break;
+    case "answerIceCandidates":
+      if (clientype === meg.clientype){
+        console.log("answerIceCandidates ==> ",meg.data);
+        const answerCandidate = new RTCIceCandidate(meg.data);
+        // pc.addIceCandidate(answerCandidate);
+      }
+      break;
     case "answerDescription":
       if (clientype === meg.clientype){
         console.log("remote answerDescription ==> ",meg.data);
-        setRemoteAnswer(meg.data)
+        const answerDescription = new RTCSessionDescription(meg.data);
+        pc.setRemoteDescription(answerDescription).then(a=>console.log("done"));
       }
       break;
     default:
@@ -107,20 +120,30 @@ webcamButton.onclick = async () => {
   answerButton.disabled = false;
   webcamButton.disabled = true;
   hangupButton.disabled = false;
-  connectButton.disabled = false;
 };
 
 // 2. Create an offer
 callButton.onclick = async () => {
   // Reference Firestore collections for signaling
   clientype = "connect";
-  // const callId = await getCallID();
-  // callInput.value = callId.id;
+  const callId = await getCallID();
+  callInput.value = callId.id;
 
   // Get candidates for caller, save to db
   pc.onicecandidate = (event) => {
+    // console.log("offerCandidates ======> ",event.candidate.toJSON())
     console.log(" NEW ICE candidate!! Reprinting SDP\n" )
     console.log(JSON.stringify(pc.localDescription));
+    // const offerIceCandidate = event.candidate && {
+    //   connection: {
+    //     webrtc:{
+    //         ice : event.candidate.toJSON()
+    //     }
+    //   },
+    //   ice_type:"offer",
+    //   call_id: callId.id,
+    // }
+    // event.candidate && setIce(offerIceCandidate);
   };
 
   // const sendChannel = pc.createDataChannel("sendChannel");
@@ -128,6 +151,7 @@ callButton.onclick = async () => {
   // sendChannel.onopen = e => console.log("Channel Opened :\n");
   // sendChannel.onclose =e => console.log("Channel Closed :\n");
 
+  // pc.createOffer().then(o => pc.setLocalDescription(o) )
 
   // Create offer
   const offerDescription = await pc.createOffer();
@@ -135,7 +159,6 @@ callButton.onclick = async () => {
 
   setTimeout( async () =>{
     offerSDPTextView.value = pc.localDescription.sdp;
-    /*
     const connectPayload = {
         call_id:callId.id,
         action: clientype,
@@ -147,59 +170,48 @@ callButton.onclick = async () => {
     }
 
     const data = await connectCall(connectPayload);
-    console.log(data);*/
-  },1000)
+    console.log(data);
+  },2000)
   
+  // hangupButton.disabled = false;
 };
-
-connectButton.onclick = () => {
-  const answerSdp = answerSDPTextView.value;
-
-  const answerDescription = {
-    sdp: answerSdp,
-    type: "answer",
-  };
-
-  setRemoteAnswer(answerDescription);
-}
-
-const setRemoteAnswer = (answerDes) =>{
-  const answerDescription = new RTCSessionDescription(answerDes);
-  pc.setRemoteDescription(answerDescription).then(a=>console.log("done"));
-}
 
 // 3. Answer the call with the unique ID
 answerButton.onclick = async () => {
   clientype = "accept";
-  // const callId = callInput.value;
-
-  //****get offer sdp from textview */
-  let offerData = null
-  // if (callId != ""){
-    if (offerSDPTextView.value != ""){
-      offerData = offerSDPTextView.value;
-    }else{
-      console.log("offer sdp and client id is missing");
-      return;
-    }
-  // }else{
-  //   console.log("offer sdp and client id is missing");
-  //   return;
-  // }
+  const callId = callInput.value;
 
     pc.onicecandidate = (event) => {
       console.log(" NEW ice candidnat!! on localconnection reprinting SDP " )
       console.log(JSON.stringify(pc.localDescription) )
-    };
-   
-  //   pc.ondatachannel= e => {
-  //     const receiveChannel = e.channel;
-  //     receiveChannel.onmessage =e =>  console.log("Message : " + e.data )
-  //     receiveChannel.onopen = e => console.log("Channel Opened :\n");
-  //     receiveChannel.onclose =e => console.log("Channel Closed :\n");
-  //     pc.channel = receiveChannel;
-  //  }
 
+      // const answerIceCandidate = event.candidate &&  {
+      //   connection: {
+      //     webrtc:{
+      //         ice : event.candidate.toJSON()
+      //     }
+      //   },
+      //   ice_type:"answer",
+      //   call_id: callId,
+      // };
+      // event.candidate && setIce(answerIceCandidate);
+    };
+
+    //****get offer sdp from textview */
+    let offerData = null
+    if (callId != ""){
+      if (offerSDPTextView.value != ""){
+        offerData = offerSDPTextView.value;//offerSDPTextView.value;//await getOfferSdp(callId);
+      }else{
+        //****Get offer from firestore as per the callid*/
+        const offerRowData = await getOfferSdp(callId);//offerSDPTextView.value;//await getOfferSdp(callId);
+        offerData = offerRowData.offerDescription.sdp;
+      }
+    }else{
+      console.log("offer sdp and client id is missing");
+      return;
+    }
+   
     const offerDescription = {
       sdp: offerData,
       type: "offer",
@@ -213,7 +225,7 @@ answerButton.onclick = async () => {
 
     setTimeout( async () =>{ 
       answerSDPTextView.value = pc.localDescription.sdp;
-      /*const connectPayload = {
+      const connectPayload = {
         call_id:callId,
         action: clientype,
         connection: {
@@ -224,8 +236,8 @@ answerButton.onclick = async () => {
       }
   
       const data = await connectCall(connectPayload);
-      console.log(data);*/
-    },1000);
+      console.log(data);
+    },2000);
     
 };
 
@@ -257,9 +269,8 @@ hangupButton.onclick = async () => {
   answerButton.disabled = true;
   webcamButton.disabled = false;
   hangupButton.disabled = true;
-  connectButton.disabled = true;
 
-  // callInput.value = "";
+  callInput.value = "";
 };
 
 
@@ -297,6 +308,17 @@ const connectCall = async (offer) => {
   return data;
 }
 
+const setIce = async (offerIce) => {
+	const response = await fetch(`${apiUrl}icecandidate`, postRequestOption(offerIce));
+  
+  if (!response.ok) {
+		throw new Error(`HTTP error! status: ${response.status}`);
+	}
+
+  const data = await response.json();
+  return data;
+}
+
 const getCallID = async () => {
 	const response = await fetch(`${apiUrl}register`, {
     method: 'POST',
@@ -312,3 +334,16 @@ const getCallID = async () => {
   const data = await response.json();
   return data;
 }
+
+const getOfferSdp = async (callId) => {
+	const response = await fetch(`${apiUrl}${callId}/offerSdp`, getRequestOption);
+  
+  if (!response.ok) {
+		throw new Error(`HTTP error! status: ${response.status}`);
+	}
+
+  const data = await response.json();
+  console.log("data ======> ",data);
+  return data;
+}
+
