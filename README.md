@@ -1,6 +1,6 @@
-# Video Chat with WebRTC and Firebase
+# Voice Call with WebRTC and Firebase
 
-Build a 1-to-1 video chat feature with WebRTC, Firestore, and JavaScript. 
+Build a 1-to-1 voice call feature with WebRTC, Firestore, JavaScript, nodeJS. 
 
 Watch the [WebRTC Explanation on YouTube](https://youtu.be/WmR9IMUD_CY) and follow the full [WebRTC Firebase Tutorial](https://fireship.io/lessons/webrtc-firebase-video-chat) on Fireship.io. 
 
