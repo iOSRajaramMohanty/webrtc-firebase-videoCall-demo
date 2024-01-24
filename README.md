@@ -57,11 +57,11 @@ npm install
 
 npm run dev
 ```
-## Usecase
+## Usecase One
+
+### Caller (1st User) 
 
 ```
-Caller 
-
 Step 1:- Click on "Start media".
 Step 2:- Click on "Generate (offer sdp)".
 
@@ -71,9 +71,11 @@ Step 3:- Click on "Get (answer sdp)" (it will display on below Answer SDP field)
 Step 4:- Click on "Connect".
 
 Done
+```
 
-Callee
+### Callee (2nd User)
 
+```
 Step 1:- Click on "Start media".
 Step 2:- Add the "Call ID" shared by the caller then click on "Generate (answer sdp)"
 
@@ -83,4 +85,28 @@ Done
 
 ```
 
-[Live](https://voice-call-fwdg.onrender.com/)
+# OR
+
+## Usecase Two
+
+### Caller (1st User)
+
+```
+Step 1:- Click on "Start media".
+Step 2:- Click on "Generate (offer sdp)".
+
+Share the "Call id" with other user.
+done..........
+```
+
+### Callee (2nd User)
+
+```
+Step 1:- Click on "Start media".
+Step 2:- Use the "Call id" given by 1st user and Click on "Generate (answer sdp)".
+
+done.....
+```
+
+
+[Live demo](https://voice-call-fwdg.onrender.com/)
