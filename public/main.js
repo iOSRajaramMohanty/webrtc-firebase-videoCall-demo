@@ -99,16 +99,22 @@ const addEventListenerForCall = () => {
   }
 };
 
+let localStreamOption = {
+    video: false,
+    audio: true,
+}
+
+let rtcOptions = {
+  offerToReceiveAudio: true,
+  offerToReceiveVideo: false 
+} 
+
 // 1. Setup media sources
 webcamButton.onclick = async () => {
   console.log("Setup media sources");
   addEventListenerForCall();
   pc = new RTCPeerConnection(servers);
-  // localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-  localStream = await navigator.mediaDevices.getUserMedia({
-    video: false,
-    audio: true,
-  });
+  localStream = await navigator.mediaDevices.getUserMedia(localStreamOption);
   remoteStream = new MediaStream();
 
   // Push tracks from local stream to peer connection
@@ -168,7 +174,7 @@ callButton.onclick = async () => {
   // pc.createOffer().then(o => pc.setLocalDescription(o) )
 
   // Create offer
-  const offerDescription = await pc.createOffer();
+  const offerDescription = await pc.createOffer(rtcOptions);
   await pc.setLocalDescription(offerDescription);
 
   setTimeout(async () => {
@@ -259,7 +265,7 @@ answerButton.onclick = async () => {
   console.log("offerData ======> ", offerData);
   await pc.setRemoteDescription(offerDescription);
   console.log("done");
-  const answerDescription = await pc.createAnswer();
+  const answerDescription = await pc.createAnswer(rtcOptions);
   await pc.setLocalDescription(answerDescription);
 
   setTimeout(async () => {
