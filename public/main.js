@@ -8,7 +8,7 @@ const servers = {
 };
 
 // Global State
-let apiUrl = "http://localhost:5300/";
+let apiUrl = "https://voice-call-fwdg.onrender.com/";
 let pc = null;
 let localStream = null;
 let remoteStream = null;
@@ -42,7 +42,7 @@ callInput.value = "";
 
 //Events
 //url can be your server url
-const url = "http://localhost:5300/stream";
+const url = "https://voice-call-fwdg.onrender.com/stream";
 
 const handleMessageEvent = (e) => {
   console.log("message ==> ", e.data);
@@ -66,7 +66,7 @@ const handleMessageEvent = (e) => {
     case "answerDescription":
       if (clientype === meg.clientype) {
         console.log("remote answerDescription ==> ", meg.data);
-        // setRemoteAnswer(meg.data);
+        setRemoteAnswer(meg.data);
 
         // const answerDescription = new RTCSessionDescription(meg.data);
         // pc.setRemoteDescription(answerDescription).then((a) =>
@@ -112,7 +112,7 @@ let rtcOptions = {
 // 1. Setup media sources
 webcamButton.onclick = async () => {
   console.log("Setup media sources");
-  addEventListenerForCall();
+  // addEventListenerForCall();
   pc = new RTCPeerConnection(servers);
   localStream = await navigator.mediaDevices.getUserMedia(localStreamOption);
   remoteStream = new MediaStream();
