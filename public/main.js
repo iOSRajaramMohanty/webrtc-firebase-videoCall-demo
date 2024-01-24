@@ -149,6 +149,9 @@ callButton.onclick = async () => {
   const callId = await getCallID();
   callInput.value = callId.id;
 
+  answerButton.disabled = true;
+  callButton.disabled = true;
+
   // Get candidates for caller, save to db
   pc.onicecandidate = (event) => {
     // console.log("offerCandidates ======> ",event.candidate.toJSON())
@@ -205,6 +208,9 @@ connectButton.onclick = () => {
   };
 
   setRemoteAnswer(answerDescription);
+
+  connectButton.disabled = true;
+  getAnswerSDPButton.disabled = true;
 };
 
 const setRemoteAnswer = (answerDes) => {
@@ -213,6 +219,7 @@ const setRemoteAnswer = (answerDes) => {
 };
 
 getAnswerSDPButton.onclick = async () => {
+  getAnswerSDPButton.disabled = true;
   const callId = callInput.value;
   const answerRowData = await getAnswerSdp(callId); //offerSDPTextView.value;//await getOfferSdp(callId);
   const answerData = answerRowData.answerDescription.sdp;
@@ -224,6 +231,12 @@ getAnswerSDPButton.onclick = async () => {
 answerButton.onclick = async () => {
   clientype = "accept";
   const callId = callInput.value;
+
+  connectButton.disabled = true;
+  getAnswerSDPButton.disabled = true;
+  callButton.disabled = true;
+  answerButton.disabled = true;
+
 
   pc.onicecandidate = (event) => {
     console.log(" NEW ice candidnat!! on localconnection reprinting SDP ");
