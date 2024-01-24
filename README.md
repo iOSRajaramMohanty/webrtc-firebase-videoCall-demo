@@ -57,3 +57,28 @@ npm install
 
 npm run dev
 ```
+## Usecase
+
+```
+Caller 
+
+Step 1:- Click on "Start media".
+Step 2:- Click on "Generate (offer sdp)".
+
+After offer sdp generated share the "Call ID" with Callee. After callee has completed their process follow the below steps.
+
+Step 3:- Click on "Get (answer sdp)" (it will display on below Answer SDP field).
+Step 4:- Click on "Connect".
+
+Done
+
+Callee
+
+Step 1:- Click on "Start media".
+Step 2:- Add the "Call ID" shared by the caller then click on "Generate (answer sdp)"
+
+After the answer sdp displayed on "Answer SDP" field inform to caller so that he/she can complete the {Step 3 and 4}.
+
+Done
+
+```
