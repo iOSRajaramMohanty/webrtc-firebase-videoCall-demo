@@ -112,7 +112,7 @@ let rtcOptions = {
 // 1. Setup media sources
 webcamButton.onclick = async () => {
   console.log("Setup media sources");
-  // addEventListenerForCall();
+  addEventListenerForCall();
   pc = new RTCPeerConnection(servers);
   localStream = await navigator.mediaDevices.getUserMedia(localStreamOption);
   remoteStream = new MediaStream();
