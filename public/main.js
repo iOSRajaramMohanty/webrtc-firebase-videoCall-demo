@@ -8,7 +8,7 @@ const servers = {
 };
 
 // Global State
-let apiUrl = "https://voice-call-fwdg.onrender.com/";//"http://localhost:5300/";
+let apiUrl = "http://localhost:5300/";//"https://voice-call-fwdg.onrender.com/";//"http://localhost:5300/";
 let pc = null;
 let localStream = null;
 let remoteStream = null;
@@ -100,11 +100,20 @@ const addEventListenerForCall = () => {
   }
 };
 
+// Define audio constraints with all possible configurations
+const audioConstraints = {
+  echoCancellation: true,     // Enable echo cancellation
+  noiseSuppression: true,     // Enable noise suppression
+  autoGainControl: true,      // Enable automatic gain control
+  latency: 0.01,              // Set the desired latency in seconds (if supported)
+  sampleRate: 48000,          // Set the desired audio sample rate (if supported)
+  channelCount: 2,            // Use stereo audio (2 channels)
+  // deviceId: 'yourAudioDeviceId', // Specify a particular audio device (if needed)
+};
+
 let localStreamOption = {
     video: true,
-    audio: {
-      echoCancellation: true,
-    },
+    audio: audioConstraints,
 }
 
 let rtcOptions = {
