@@ -8,7 +8,7 @@ const servers = {
 };
 
 // Global State
-let apiUrl = "https://voice-call-fwdg.onrender.com/";
+let apiUrl = "https://voice-call-fwdg.onrender.com/";//"http://localhost:5300/";
 let pc = null;
 let localStream = null;
 let remoteStream = null;
@@ -42,7 +42,7 @@ callInput.value = "";
 
 //Events
 //url can be your server url
-const url = "https://voice-call-fwdg.onrender.com/stream";
+const url = `${apiUrl}stream`//"https://voice-call-fwdg.onrender.com/stream";
 
 const handleMessageEvent = (e) => {
   console.log("message ==> ", e.data);
@@ -66,6 +66,7 @@ const handleMessageEvent = (e) => {
     case "answerDescription":
       if (clientype === meg.clientype) {
         console.log("remote answerDescription ==> ", meg.data);
+        console.log('Connection State:', pc.connectionState);
         setRemoteAnswer(meg.data);
 
         // const answerDescription = new RTCSessionDescription(meg.data);
@@ -147,7 +148,6 @@ callButton.onclick = async () => {
   // Reference Firestore collections for signaling
   clientype = "connect";
   const callId = await getCallID();
-  callInput.value = callId.id;
 
   answerButton.disabled = true;
   callButton.disabled = true;
@@ -155,19 +155,33 @@ callButton.onclick = async () => {
   // Get candidates for caller, save to db
   pc.onicecandidate = (event) => {
     // console.log("offerCandidates ======> ",event.candidate.toJSON())
-    console.log(" NEW ICE candidate!! Reprinting SDP\n");
-    console.log(JSON.stringify(pc.localDescription));
-    // const offerIceCandidate = event.candidate && {
-    //   connection: {
-    //     webrtc:{
-    //         ice : event.candidate.toJSON()
-    //     }
-    //   },
-    //   ice_type:"offer",
-    //   call_id: callId.id,
-    // }
-    // event.candidate && setIce(offerIceCandidate);
+    if (event.candidate) {
+      // ICE candidate available
+      console.log(" NEW ICE candidate!! Reprinting SDP\n");
+      console.log(JSON.stringify(pc.localDescription));
+    } else {
+      // ICE gathering is complete
+      console.log('ICE gathering complete');
+      console.log('Final ICE gathering state:', pc.iceGatheringState);
+      sendOfferSdp(pc.localDescription.sdp,clientype,callId.id)
+
+    //   const offerIceCandidate = event.candidate && {
+    //     connection: {
+    //       webrtc:{
+    //           ice : event.candidate.toJSON()
+    //       }
+    //     },
+    //     ice_type:"offer",
+    //     call_id: callId.id,
+    //   }
+    //   event.candidate && setIce(offerIceCandidate);
+    }
+    
   };
+
+  pc.addEventListener('signalingstatechange', () => {
+    console.log('Signaling State:', pc.signalingState);
+  });
 
   // const sendChannel = pc.createDataChannel("sendChannel");
   // sendChannel.onmessage = e =>  console.log("Message : "  + e.data )
@@ -179,24 +193,24 @@ callButton.onclick = async () => {
   // Create offer
   const offerDescription = await pc.createOffer(rtcOptions);
   await pc.setLocalDescription(offerDescription);
+};
 
-  setTimeout(async () => {
-    offerSDPTextView.value = pc.localDescription.sdp;
-    const connectPayload = {
-      call_id: callId.id,
-      action: clientype,
-      connection: {
-        webrtc: {
-          sdp: pc.localDescription.sdp,
-        },
+const sendOfferSdp = async (offersdp, client_type, call_id) => {
+  offerSDPTextView.value = offersdp;
+  callInput.value = call_id;
+
+  const connectPayload = {
+    call_id: call_id,
+    action: client_type,
+    connection: {
+      webrtc: {
+        sdp: offersdp,
       },
-    };
+    },
+  };
 
-    const data = await connectCall(connectPayload);
-    console.log(data);
-  }, 2000);
-
-  // hangupButton.disabled = false;
+  const data = await connectCall(connectPayload);
+  console.log(data);
 };
 
 connectButton.onclick = () => {
@@ -216,6 +230,7 @@ connectButton.onclick = () => {
 const setRemoteAnswer = (answerDes) => {
   const answerDescription = new RTCSessionDescription(answerDes);
   pc.setRemoteDescription(answerDescription).then((a) => console.log("done"));
+  console.log('Connection State:', pc.connectionState);
 };
 
 getAnswerSDPButton.onclick = async () => {
@@ -237,21 +252,32 @@ answerButton.onclick = async () => {
   callButton.disabled = true;
   answerButton.disabled = true;
 
+  pc.addEventListener('signalingstatechange', () => {
+    console.log('Signaling State:', pc.signalingState);
+  });
 
   pc.onicecandidate = (event) => {
-    console.log(" NEW ice candidnat!! on localconnection reprinting SDP ");
-    console.log(JSON.stringify(pc.localDescription));
+    if (event.candidate) {
+      // ICE candidate available
+      console.log(" NEW ice candidnat!! on localconnection reprinting SDP ");
+      console.log(JSON.stringify(pc.localDescription));
+    } else {
+      // ICE gathering is complete
+      console.log('ICE gathering complete');
+      console.log('Final ICE gathering state:', pc.iceGatheringState);
+      sendAnswerSdp(pc.localDescription.sdp,clientype,callId)
 
-    // const answerIceCandidate = event.candidate &&  {
-    //   connection: {
-    //     webrtc:{
-    //         ice : event.candidate.toJSON()
-    //     }
-    //   },
-    //   ice_type:"answer",
-    //   call_id: callId,
-    // };
-    // event.candidate && setIce(answerIceCandidate);
+      // const answerIceCandidate = event.candidate &&  {
+      //   connection: {
+      //     webrtc:{
+      //         ice : event.candidate.toJSON()
+      //     }
+      //   },
+      //   ice_type:"answer",
+      //   call_id: callId,
+      // };
+      // event.candidate && setIce(answerIceCandidate);
+    }
   };
 
   //****get offer sdp from textview */
@@ -280,22 +306,23 @@ answerButton.onclick = async () => {
   console.log("done");
   const answerDescription = await pc.createAnswer(rtcOptions);
   await pc.setLocalDescription(answerDescription);
+};
 
-  setTimeout(async () => {
-    answerSDPTextView.value = pc.localDescription.sdp;
-    const connectPayload = {
-      call_id: callId,
-      action: clientype,
-      connection: {
-        webrtc: {
-          sdp: pc.localDescription.sdp,
-        },
+const sendAnswerSdp = async (answersdp, client_type, call_id) => {
+  answerSDPTextView.value = answersdp;
+
+  const connectPayload = {
+    call_id: call_id,
+    action: client_type,
+    connection: {
+      webrtc: {
+        sdp: answersdp,
       },
-    };
+    },
+  };
 
-    const data = await connectCall(connectPayload);
-    console.log(data);
-  }, 2000);
+  const data = await connectCall(connectPayload);
+  console.log(data);
 };
 
 // 3. Hangup the call
