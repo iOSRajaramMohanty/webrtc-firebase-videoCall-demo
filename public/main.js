@@ -8,7 +8,7 @@ const servers = {
 };
 
 // Global State
-let apiUrl = "https://voice-call-fwdg.onrender.com/";//"http://localhost:5300/";
+let apiUrl = "http://localhost:5300/";//"https://voice-call-fwdg.onrender.com/";//"http://localhost:5300/";
 let pc = null;
 let localStream = null;
 let remoteStream = null;
@@ -102,13 +102,20 @@ const addEventListenerForCall = () => {
 
 let localStreamOption = {
     video: true,
-    audio: true,
+    audio: {
+      echoCancellation: true,
+    },
 }
 
 let rtcOptions = {
-  offerToReceiveAudio: true,
-  offerToReceiveVideo: true 
+  offerToReceiveAudio: true,   // Default is true, willing to receive audio
+  offerToReceiveVideo: true,   // Default is true, willing to receive video
+  voiceActivityDetection: true, // Enable voice activity detection 
 } 
+
+const answerOptions = {
+  voiceActivityDetection: true, // Enable voice activity detection in the answer
+};
 
 // 1. Setup media sources
 webcamButton.onclick = async () => {
@@ -304,7 +311,7 @@ answerButton.onclick = async () => {
   console.log("offerData ======> ", offerData);
   await pc.setRemoteDescription(offerDescription);
   console.log("done");
-  const answerDescription = await pc.createAnswer(rtcOptions);
+  const answerDescription = await pc.createAnswer(answerOptions);
   await pc.setLocalDescription(answerDescription);
 };
 
