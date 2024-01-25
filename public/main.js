@@ -8,7 +8,7 @@ const servers = {
 };
 
 // Global State
-let apiUrl = "http://localhost:5300/";//"https://voice-call-fwdg.onrender.com/";//"http://localhost:5300/";
+let apiUrl = "https://voice-call-fwdg.onrender.com/";//"http://localhost:5300/";
 let pc = null;
 let localStream = null;
 let remoteStream = null;
