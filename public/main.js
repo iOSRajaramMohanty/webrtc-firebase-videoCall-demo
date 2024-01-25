@@ -18,25 +18,25 @@ let source = null;
 
 // HTML elements
 const webcamButton = document.getElementById("webcamButton");
-// const webcamVideo = document.getElementById('webcamVideo');
+const webcamVideo = document.getElementById('webcamVideo');
 const callButton = document.getElementById("callButton");
 const callInput = document.getElementById("callInput");
 const answerButton = document.getElementById("answerButton");
 const remoteVideo = document.getElementById("remoteVideo");
 const hangupButton = document.getElementById("hangupButton");
-const connectButton = document.getElementById("connectButton");
-const getAnswerSDPButton = document.getElementById("getAnswerSDPButton");
+// const connectButton = document.getElementById("connectButton");
+// const getAnswerSDPButton = document.getElementById("getAnswerSDPButton");
 
 
-const offerSDPTextView = document.getElementById("offerSDP");
-const answerSDPTextView = document.getElementById("answerSDP");
+// const offerSDPTextView = document.getElementById("offerSDP");
+// const answerSDPTextView = document.getElementById("answerSDP");
 
 callButton.disabled = true;
 answerButton.disabled = true;
 webcamButton.disabled = false;
 hangupButton.disabled = true;
-connectButton.disabled = true;
-getAnswerSDPButton.disabled = true;
+// connectButton.disabled = true;
+// getAnswerSDPButton.disabled = true;
 
 callInput.value = "";
 
@@ -101,13 +101,13 @@ const addEventListenerForCall = () => {
 };
 
 let localStreamOption = {
-    video: false,
+    video: true,
     audio: true,
 }
 
 let rtcOptions = {
   offerToReceiveAudio: true,
-  offerToReceiveVideo: false 
+  offerToReceiveVideo: true 
 } 
 
 // 1. Setup media sources
@@ -131,15 +131,15 @@ webcamButton.onclick = async () => {
     });
   };
 
-  // webcamVideo.srcObject = localStream;
+  webcamVideo.srcObject = localStream;
   remoteVideo.srcObject = remoteStream;
 
   callButton.disabled = false;
   answerButton.disabled = false;
   webcamButton.disabled = true;
   hangupButton.disabled = false;
-  connectButton.disabled = false;
-  getAnswerSDPButton.disabled = false;
+  // connectButton.disabled = false;
+  // getAnswerSDPButton.disabled = false;
 
 };
 
@@ -196,7 +196,7 @@ callButton.onclick = async () => {
 };
 
 const sendOfferSdp = async (offersdp, client_type, call_id) => {
-  offerSDPTextView.value = offersdp;
+  // offerSDPTextView.value = offersdp;
   callInput.value = call_id;
 
   const connectPayload = {
@@ -213,7 +213,7 @@ const sendOfferSdp = async (offersdp, client_type, call_id) => {
   console.log(data);
 };
 
-connectButton.onclick = () => {
+/*connectButton.onclick = () => {
   const answerSdp = answerSDPTextView.value;
 
   const answerDescription = {
@@ -225,7 +225,7 @@ connectButton.onclick = () => {
 
   connectButton.disabled = true;
   getAnswerSDPButton.disabled = true;
-};
+};*/
 
 const setRemoteAnswer = (answerDes) => {
   const answerDescription = new RTCSessionDescription(answerDes);
@@ -233,22 +233,22 @@ const setRemoteAnswer = (answerDes) => {
   console.log('Connection State:', pc.connectionState);
 };
 
-getAnswerSDPButton.onclick = async () => {
+/*getAnswerSDPButton.onclick = async () => {
   getAnswerSDPButton.disabled = true;
   const callId = callInput.value;
   const answerRowData = await getAnswerSdp(callId); //offerSDPTextView.value;//await getOfferSdp(callId);
   const answerData = answerRowData.answerDescription.sdp;
 
   answerSDPTextView.value = answerData;
-}
+}*/
 
 // 3. Answer the call with the unique ID
 answerButton.onclick = async () => {
   clientype = "accept";
   const callId = callInput.value;
 
-  connectButton.disabled = true;
-  getAnswerSDPButton.disabled = true;
+  // connectButton.disabled = true;
+  // getAnswerSDPButton.disabled = true;
   callButton.disabled = true;
   answerButton.disabled = true;
 
@@ -283,14 +283,14 @@ answerButton.onclick = async () => {
   //****get offer sdp from textview */
   let offerData = null;
   if (callId != "") {
-    if (offerSDPTextView.value != "") {
-      offerData = offerSDPTextView.value; //offerSDPTextView.value;//await getOfferSdp(callId);
-    } else {
+    // if (offerSDPTextView.value != "") {
+    //   offerData = offerSDPTextView.value; //offerSDPTextView.value;//await getOfferSdp(callId);
+    // } else {
       //****Get offer from firestore as per the callid*/
       const offerRowData = await getOfferSdp(callId); //offerSDPTextView.value;//await getOfferSdp(callId);
       offerData = offerRowData.offerDescription.sdp;
-      offerSDPTextView.value = offerData;
-    }
+      // offerSDPTextView.value = offerData;
+    // }
   } else {
     console.log("offer sdp and client id is missing");
     return;
@@ -309,7 +309,7 @@ answerButton.onclick = async () => {
 };
 
 const sendAnswerSdp = async (answersdp, client_type, call_id) => {
-  answerSDPTextView.value = answersdp;
+  // answerSDPTextView.value = answersdp;
 
   const connectPayload = {
     call_id: call_id,
@@ -329,7 +329,7 @@ const sendAnswerSdp = async (answersdp, client_type, call_id) => {
 hangupButton.onclick = async () => {
   remoteStream.clone();
   remoteStream = null;
-  // webcamVideo.srcObject=null;
+  webcamVideo.srcObject=null;
   remoteVideo.srcObject = null;
   localStream.getTracks().forEach(function (track) {
     track.stop();
@@ -345,15 +345,15 @@ hangupButton.onclick = async () => {
   source.removeEventListener("error", handleErrorEvent, false);
   source = null;
 
-  offerSDPTextView.value = "";
-  answerSDPTextView.value = "";
+  // offerSDPTextView.value = "";
+  // answerSDPTextView.value = "";
 
   callButton.disabled = true;
   answerButton.disabled = true;
   webcamButton.disabled = false;
   hangupButton.disabled = true;
-  connectButton.disabled = true;
-  getAnswerSDPButton.disabled = true;
+  // connectButton.disabled = true;
+  // getAnswerSDPButton.disabled = true;
 
   callInput.value = "";
 };

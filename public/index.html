@@ -10,33 +10,36 @@
   <body>
     <h2>1. Start your Media</h2>
     <div class="videos">
-      <!-- <span>
+      <span>
         <h3>Local Stream</h3>
         <video id="webcamVideo" autoplay playsinline></video>
-      </span> -->
+      </span>
       <span>
         <h3>Remote Stream</h3>
-        <!-- <video id="remoteVideo" autoplay playsinline></video> -->
-        <audio id="remoteVideo" controls autoplay></audio>
+        <video id="remoteVideo" autoplay playsinline></video>
+        <!-- <audio id="remoteVideo" controls autoplay></audio> -->
       </span>
     </div>
 
     <button id="webcamButton">Start media</button>
     <h2>2. Create a new Call</h2>
-    <button id="callButton" disabled>Generate (offer sdp)</button>
+    <button id="callButton" disabled>Generate (offer sdp/Call id)</button>
 
-    <h3>Offer SDP</h3>
+    <!-- <h3>Offer SDP</h3>
     <textarea
       id="offerSDP"
       resize="none"
       name="comment"
       style="width: 285px; height: 191px"
       required="required"
-    ></textarea>
-    <p>
+    ></textarea> -->
+    <!-- <p>
       Copy the offer SDP and past above in different browser to generate answer
       SDP and click the below button
-    </p>
+    </p> -->
+
+    <p>Share the call id to whom you want to connect and tell him to click "Connect" after added the call id.</p>
+    <p>Note:- Make sure that he/she opened the same url.</p>
 
     <!-- <h2>3. Join a Call</h2> -->
     <!-- <p>Answer the call from a different browser window or device</p> -->
@@ -45,9 +48,11 @@
     <div>
       Call ID:- 
       <input id="callInput" />
-      <button id="answerButton" disabled>Generate (answer sdp)</button>
+      <button id="answerButton" disabled>Connect</button>
+      <!-- <button id="answerButton" disabled>Generate (answer sdp)</button> -->
     </div>
-    <h2></h2>
+
+    <!-- <h2></h2>
     <button id="getAnswerSDPButton" disabled>Get (answer sdp)</button>
     <h3>Answer SDP</h3>
     <textarea
@@ -59,9 +64,9 @@
     ></textarea>
 
     <h3>3. Connect the call</h3>
-    <button id="connectButton" disabled>Connect</button>
+    <button id="connectButton" disabled>Connect</button> -->
 
-    <h2>4. Hangup</h2>
+    <h2>3. Hangup</h2>
 
     <button id="hangupButton" disabled>Hangup</button>
 
