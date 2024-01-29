@@ -131,13 +131,32 @@ webcamButton.onclick = async () => {
   console.log("Setup media sources");
   addEventListenerForCall();
   pc = new RTCPeerConnection(servers);
-  localStream = await navigator.mediaDevices.getUserMedia(localStreamOption);
+  navigator.mediaDevices.getUserMedia(localStreamOption).then((stream) => {
+    // Access the microphone stream
+    console.log('Microphone stream obtained:', stream);
+
+    // Use the stream for WebRTC or other audio processing
+
+    // Example: Create an AudioContext and connect the stream to it
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const source = audioContext.createMediaStreamSource(stream);
+    source.connect(audioContext.destination);
+
+    webcamVideo.srcObject = stream;
+    // Push tracks from local stream to peer connection
+    stream.getTracks().forEach((track) => {
+      sender = pc.addTrack(track, stream);
+    });
+  })
+  .catch((error) => {
+    console.error('Error accessing user media:', error);
+  });;
   remoteStream = new MediaStream();
 
-  // Push tracks from local stream to peer connection
-  localStream.getTracks().forEach((track) => {
-    sender = pc.addTrack(track, localStream);
-  });
+  // // Push tracks from local stream to peer connection
+  // localStream.getTracks().forEach((track) => {
+  //   sender = pc.addTrack(track, localStream);
+  // });
 
   // Pull tracks from remote stream, add to video stream
   pc.ontrack = (event) => {
@@ -147,7 +166,6 @@ webcamButton.onclick = async () => {
     });
   };
 
-  webcamVideo.srcObject = localStream;
   remoteVideo.srcObject = remoteStream;
 
   callButton.disabled = false;
